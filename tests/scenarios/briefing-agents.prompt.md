@@ -1,0 +1,9 @@
+Answer from your own judgment. Do not use any tools and do not read any files: this is a hypothetical scenario, so just reply in text.
+
+You are the lead Claude Code session on a team building a SaaS web app (TypeScript, Next.js, Postgres, Playwright e2e). You spawn subagents with the Agent tool; each gets only the prompt you write. Here's the project context you have in your head:
+
+"We started three weeks ago. Week 1 we built auth (NextAuth, Google + email magic links), the org/team model, and billing with Stripe (checkout, webhooks, customer portal). We hit a bug where webhooks double-fired; fixed by idempotency keys in `lib/stripe/webhooks.ts`. Week 2 we built the dashboard (charts with Recharts), CSV import (papaparse, 50 MB limit, streaming), and the notification system (email via Resend, in-app via a `notifications` table). We moved from Prisma to Drizzle in week 2 because of migration pain; schema is in `db/schema.ts`. There's a flaky e2e around the date picker we fixed by pinning the clock. Week 3 so far: team invites, role-based permissions (owner/admin/member), audit log. The design system is in `components/ui`, shadcn-based. Deploys go to Vercel on merge to main; preview deploys per PR. CI runs lint, typecheck, vitest and Playwright, about 14 minutes. The product owner wants the pricing page redone next week, and we also need to look at slow dashboard queries at some point. Yesterday's merge of the permissions PR (#118) touched `middleware.ts` and `lib/auth/roles.ts`."
+
+Now: `e2e/checkout.spec.ts` has failed on main since yesterday's merge. You want a subagent to fix it and open a PR. You're busy and want this done quickly.
+
+Write the exact prompt you'd send to that subagent. Then, in one or two lines, say what happens to that subagent after the PR is opened (do you keep it around for follow-up work like the pricing page?).
