@@ -14,17 +14,19 @@ alone were roughly 30–40% of all cost.
 
 ## Pick the cheapest wait
 
-1. **No wait at all.** Let the platform do it: `gh pr merge 42 --auto --squash` merges when checks pass, with zero
-   tokens spent. Deploy pipelines, CI "on success" jobs and queues often have the same.
+1. **No wait at all.** Let the platform do it: `gh pr merge 42 --auto --squash` merges when the *required* checks
+   pass, with zero tokens spent. It needs auto-merge allowed and required checks in branch protection; without
+   them it errors or merges at once.
 2. **One waiter that exits when the job does**, run in the background so you're woken once:
    `gh pr checks 42 --watch` (Bash `run_in_background`), or wait on a process id: `while kill -0 $PID; do sleep 15; done`.
    Sleeping inside a background command is free; it isn't a model turn.
 3. **A big context and a long wait?** Write a handoff note and end, and let a small fresh agent or a script do the
-   step after the wait. Don't park 500k tokens for 40 minutes.
+   step after the wait.
 
 ## Rules
 
-- Long scripts end with a `DONE` or `FAILED` line and touch a marker file (`job.done`).
+- Long scripts end with a `DONE` or `FAILED` line and touch a marker file. `rm -f job.done` before starting the job,
+  or a leftover marker fires at once.
 - **Subagents never end their turn waiting.** Ending the turn hands back to the lead, and the job's notice may never
   wake you. Keep working, or block on a Monitor until-loop: `until [ -f job.done ]; do sleep 10; done`.
 - The lead never ends a turn "waiting for X" unless X is a person or a background command that will wake it.

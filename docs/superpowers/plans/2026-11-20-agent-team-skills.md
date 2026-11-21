@@ -83,7 +83,7 @@
 - Consumes: the CLI from Task 2.
 
 - [ ] **Step 1:** Write `SKILL.md`. Description: "Use when asked where Claude Code tokens went, why usage is high, or to check a week's spend for leaks." Body: run the script (with `${CLAUDE_PLUGIN_ROOT}/skills/audit-your-spend/scripts/audit.py`), read the report back in plain words, map each leak it finds to the skill that fixes it (rebuilds and polls → waiting-for-free, heavy calls and starting context → context-hygiene, long sessions → briefing-agents, images → looking-cheaply), and never paste the report anywhere public without the user's say.
-- [ ] **Step 2:** Run on Jon's machine: `python3 skills/audit-your-spend/scripts/audit.py --since 2026-10-01 --until 2026-10-31`. Expected: total 25,461,485,789 tokens and output 0.10%. If lower, the footer's earliest date must explain it (transcript cleanup); then compare the days still present against the October daily CSV in `~/Downloads/jon-mcbee-claude-code-tokens-oct-2026-daily.csv`, which must match day for day. Don't commit the output.
+- [ ] **Step 2:** Run on Jon's machine: `python3 skills/audit-your-spend/scripts/audit.py --since 2026-10-01 --until 2026-10-31`. Expected: total 25,461,485,789 tokens and output 0.10%. If lower, the footer's earliest date must explain it (transcript cleanup); then compare the days still present against the October daily CSV from the original measurement, which must match day for day. Don't commit the output.
 - [ ] **Step 3:** Commit: `feat: audit-your-spend skill`.
 
 ### Tasks 4–9: The six behaviour skills

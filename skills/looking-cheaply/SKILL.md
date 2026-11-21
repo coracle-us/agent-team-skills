@@ -8,7 +8,7 @@ description: Use when about to take screenshots, view rendered images, or visual
 **Every image you view stays in your context and is re-read on every later turn.** Twelve full-size screenshots per
 check, three checks, is 36 images riding along for the rest of the session.
 
-Why: a 12-day agent-team build put 6,574 screenshots into agent contexts.
+Why: a 12-day agent-team build had 6,574 screenshots in context.
 
 ## The recipe
 
@@ -17,7 +17,7 @@ Why: a 12-day agent-team build put 6,574 screenshots into agent contexts.
    Unchanged states need no look.
    `magick compare -metric AE a.png b.png null: 2>&1` (prints the number of differing pixels)
 3. **One contact sheet** of the states to check, labelled, tiles about half size:
-   `magick montage shots/run1/*.png -tile 4x -geometry 720x450+4+4 -label '%t' sheet.png`
+   `magick montage -label '%t' shots/run1/*.png -tile 4x -geometry 720x450+4+4 sheet.png`
    (or a few lines of Pillow). View the sheet: one image.
 4. **Zoom only where it's needed**: for a tile that looks off, or a change too small to judge at half size, view a crop
    of that state at full size, not the whole screenshot.

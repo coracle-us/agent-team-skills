@@ -67,8 +67,11 @@ class Call:
 class Stats:
     files_scanned: int = 0
     lines_skipped: int = 0
-    earliest: datetime = None
+    files_unreadable: int = 0
+    earliest: datetime = None          # first and last call inside the window
     latest: datetime = None
+    logs_earliest: datetime = None     # first and last timestamp in any log, window or not
+    logs_latest: datetime = None
     sleep_polls: int = 0
     images: int = 0
 
@@ -100,56 +103,69 @@ def load_calls(root, since, until):
         stem = os.path.splitext(os.path.basename(path))[0]
         session = stem[len('agent-'):] if stem.startswith('agent-') else stem
         in_agent_folder = f'{os.sep}subagents{os.sep}' in path
-        with open(path, errors='ignore') as fh:
-            for line in fh:
-                if '"usage"' not in line and '"image"' not in line and '"Bash"' not in line:
-                    continue
-                try:
-                    o = json.loads(line)
-                except ValueError:
-                    stats.lines_skipped += 1
-                    continue
-                if not isinstance(o, dict):
-                    stats.lines_skipped += 1
-                    continue
-                m = o.get('message') if isinstance(o.get('message'), dict) else {}
-                t = _ts(o.get('timestamp'))
-                if 'usage' in o and not isinstance(m.get('usage'), dict):
-                    stats.lines_skipped += 1
-                    continue
-                if t is None or not (since <= t.astimezone(timezone.utc).date() <= until):
-                    continue
-                kind = o.get('type')
-                if kind == 'user':
-                    stats.images += _count_images(m.get('content'))
-                    continue
-                if kind != 'assistant':
-                    continue
-                for b in m.get('content') or ():
-                    if (isinstance(b, dict) and b.get('type') == 'tool_use' and b.get('name') == 'Bash'
-                            and b.get('id') not in tool_ids):
-                        tool_ids.add(b.get('id'))
-                        if SLEEP.search(str((b.get('input') or {}).get('command', ''))):
-                            stats.sleep_polls += 1
-                u = m.get('usage')
-                if not isinstance(u, dict):
-                    continue
-                key = (m.get('id'), o.get('requestId'))
-                if key in seen:
-                    continue
-                seen.add(key)
-                cc = u.get('cache_creation') if isinstance(u.get('cache_creation'), dict) else None
-                w1 = int(cc.get('ephemeral_1h_input_tokens') or 0) if cc else 0
-                w5 = int(cc.get('ephemeral_5m_input_tokens') or 0) if cc else int(u.get('cache_creation_input_tokens') or 0)
-                calls.append(Call(session=session, agent=in_agent_folder or bool(o.get('isSidechain')), ts=t,
-                                  model=m.get('model') or 'unknown', input=int(u.get('input_tokens') or 0),
-                                  output=int(u.get('output_tokens') or 0),
-                                  cache_read=int(u.get('cache_read_input_tokens') or 0),
-                                  cache_write_5m=w5, cache_write_1h=w1))
-                stats.earliest = t if stats.earliest is None or t < stats.earliest else stats.earliest
-                stats.latest = t if stats.latest is None or t > stats.latest else stats.latest
+        try:
+            _read_file(path, session, in_agent_folder, since, until, calls, stats, seen, tool_ids)
+        except OSError:
+            stats.files_unreadable += 1
     calls.sort(key=lambda c: c.ts)
     return calls, stats
+
+
+def _read_file(path, session, in_agent_folder, since, until, calls, stats, seen, tool_ids):
+    with open(path, errors='ignore') as fh:
+        for line in fh:
+            if line.strip() and not line.rstrip().endswith('}'):  # a truncated write
+                stats.lines_skipped += 1
+                continue
+            if '"usage"' not in line and '"image"' not in line and '"Bash"' not in line:
+                continue
+            try:
+                o = json.loads(line)
+            except ValueError:
+                stats.lines_skipped += 1
+                continue
+            if not isinstance(o, dict):
+                stats.lines_skipped += 1
+                continue
+            m = o.get('message') if isinstance(o.get('message'), dict) else {}
+            t = _ts(o.get('timestamp'))
+            if ('usage' in o or 'usage' in m) and not isinstance(m.get('usage'), dict):
+                stats.lines_skipped += 1
+                continue
+            if t is not None:
+                stats.logs_earliest = min(stats.logs_earliest or t, t)
+                stats.logs_latest = max(stats.logs_latest or t, t)
+            if t is None or not (since <= t.astimezone(timezone.utc).date() <= until):
+                continue
+            kind = o.get('type')
+            if kind == 'user':
+                stats.images += _count_images(m.get('content'))
+                continue
+            if kind != 'assistant':
+                continue
+            for b in m.get('content') or ():
+                if (isinstance(b, dict) and b.get('type') == 'tool_use' and b.get('name') == 'Bash'
+                        and b.get('id') not in tool_ids):
+                    tool_ids.add(b.get('id'))
+                    if SLEEP.search(str((b.get('input') or {}).get('command', ''))):
+                        stats.sleep_polls += 1
+            u = m.get('usage')
+            if not isinstance(u, dict):
+                continue
+            key = (m.get('id'), o.get('requestId'))
+            if key in seen:
+                continue
+            seen.add(key)
+            cc = u.get('cache_creation') if isinstance(u.get('cache_creation'), dict) else None
+            w1 = int(cc.get('ephemeral_1h_input_tokens') or 0) if cc else 0
+            w5 = int(cc.get('ephemeral_5m_input_tokens') or 0) if cc else int(u.get('cache_creation_input_tokens') or 0)
+            calls.append(Call(session=session, agent=in_agent_folder or bool(o.get('isSidechain')), ts=t,
+                              model=m.get('model') or 'unknown', input=int(u.get('input_tokens') or 0),
+                              output=int(u.get('output_tokens') or 0),
+                              cache_read=int(u.get('cache_read_input_tokens') or 0),
+                              cache_write_5m=w5, cache_write_1h=w1))
+            stats.earliest = t if stats.earliest is None or t < stats.earliest else stats.earliest
+            stats.latest = t if stats.latest is None or t > stats.latest else stats.latest
 
 
 def _short_id(session):
@@ -198,7 +214,10 @@ def build_report(calls, stats):
     return {
         'found': {'earliest': stats.earliest.isoformat() if stats.earliest else None,
                   'latest': stats.latest.isoformat() if stats.latest else None,
-                  'files_scanned': stats.files_scanned, 'lines_skipped': stats.lines_skipped,
+                  'logs_earliest': stats.logs_earliest.isoformat() if stats.logs_earliest else None,
+                  'logs_latest': stats.logs_latest.isoformat() if stats.logs_latest else None,
+                  'files_scanned': stats.files_scanned, 'files_unreadable': stats.files_unreadable,
+                  'lines_skipped': stats.lines_skipped,
                   'responses': len(calls), 'sessions': len(sessions)},
         'totals': {'tokens': tokens, **parts},
         'mix': {k: _pct(v, tokens) for k, v in parts.items()},
@@ -234,9 +253,12 @@ def render(r):
     footer = [
         '',
         f"Found {f['responses']:,} responses in {f['sessions']:,} sessions; {f['files_scanned']:,} log files scanned, "
-        f"{f['lines_skipped']:,} unreadable lines skipped.",
-        f"Data runs from {(f['earliest'] or 'n/a')[:10]} to {(f['latest'] or 'n/a')[:10]} (UTC). Claude Code deletes "
-        "old transcripts (cleanupPeriodDays, default 30), so older days may be missing.",
+        f"{f['lines_skipped']:,} unreadable lines skipped"
+        + (f", {f['files_unreadable']:,} files couldn't be opened." if f['files_unreadable'] else '.'),
+        f"This window's data runs from {(f['earliest'] or 'n/a')[:10]} to {(f['latest'] or 'n/a')[:10]}; the logs on "
+        f"this machine run from {(f['logs_earliest'] or 'n/a')[:10]} to {(f['logs_latest'] or 'n/a')[:10]} (UTC).",
+        'Claude Code deletes old transcripts (cleanupPeriodDays, default 30), so days before the logs begin are missing, '
+        'not idle.',
         'Note: cost shares are estimates, weighted by API list-price ratios (input 4, output 20, cache read 0.2, '
         'cache write 5 or 8 for the 5-minute or 1-hour cache). No prices are shown.',
         f'A rebuild is a call that writes at least {int(REBUILD_SHARE * 100)}% of a context of '
@@ -260,7 +282,8 @@ def render(r):
             f"{h['cost_share']:.0f}% of estimated cost.",
             f"  Cache rebuilds after idle gaps: {rb['count']:,} ({_n(rb['tokens'])} tokens), "
             f"{rb['cost_share']:.0f}% of estimated cost.",
-            f"  Sleep-and-check polls: {r['sleep_polls']:,}.  Images in context: {r['images']:,}.",
+            f"  Sleep-and-check polls (approximate: Bash commands containing a sleep): {r['sleep_polls']:,}.",
+            f"  Images in context: {r['images']:,}.",
             '', 'Costliest sessions, and how long each lived:']
     out += [f"  {s['id']}  {'agent' if s['agent'] else 'lead '}  {s['hours']:6.1f} h  {s['calls']:>6,} calls  "
             f"{s['cost_share']:4.1f}% of estimated cost" for s in r['costliest_sessions']]

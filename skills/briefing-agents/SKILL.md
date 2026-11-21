@@ -45,5 +45,5 @@ Prefer doing a small thing yourself over spawning. Prefer fewer, smaller agents 
 | Mistake | Instead |
 |---|---|
 | Pasting the stack or a project summary "for context" | Point at the files; the agent reads what it needs |
-| "Check CI before reporting done" | Report with the PR open; the lead or `gh pr merge --auto` handles CI |
+| "Check CI before reporting done" | Report with the PR open; the lead handles CI (see waiting-for-free) |
 | Keeping the agent for the next task because it "knows the code" | It knows 500k tokens of the old task. Start fresh |

@@ -4,7 +4,7 @@
 
 In October 2026 I used 25.5 billion tokens through Claude Code, most of it leading teams of agents that built a multiplayer
 browser game in 12 days. Only **0.10%** of those tokens were the model writing anything: code, prose, commands.
-**96.5%** was agents re-reading context they already had, on every single call.
+**96.5%** was the model re-reading context it already had, from the cache, on every single call.
 
 So I audited every transcript to find where the re-reading went, and turned what I found into seven Claude Code
 skills. Each one fires at the moment the leak happens, for whoever is **leading a team of agents**.
@@ -35,9 +35,9 @@ list-price ratios.
 |---|---|---|
 | `briefing-agents` | you're about to spawn an agent | Agents were **86%** of tokens. One agent kept alive for **117 hours** made 1,320 calls at ~500k context each: **15%** of all cost by itself. |
 | `waiting-for-free` | a build, CI run or deploy will take minutes | **3,019** sleep-and-check loops, and **1,039** cache rebuilds after idle gaps: roughly **30–40%** of all cost. |
-| `context-hygiene` | a session is getting heavy, or CLAUDE.md is growing | Calls carrying over 400k context were **44%** of calls and **71%** of cost. CLAUDE.md grew 25×, and a new agent's starting context went from **32k to 113k** tokens. |
+| `context-hygiene` | a session is getting heavy, or CLAUDE.md is growing | Calls carrying over 400k context were **44%** of calls and **71%** of cost. CLAUDE.md grew from 10 KB to 255 KB, and a new agent's starting context went from **32k to 113k** tokens. |
 | `looking-cheaply` | you're about to take screenshots | **6,574** screenshots, each re-read on every later turn. |
-| `merging-in-batches` | you're merging a stack of PRs, or a test is flaky | Every flaky end-to-end failure cost a full hour-long CI restart. |
+| `merging-in-batches` | you're merging a stack of PRs, or a test is flaky | One CI run for a resolved stack, not one per PR; a flaky test gets one logged retry, not a restart. |
 | `rulings-become-tests` | the lead makes a call that must keep holding | Fresh agents don't know yesterday's decisions. A test does. |
 | `audit-your-spend` | you ask where the tokens went | Runs locally on your own logs and shows all of the above for your week. |
 
@@ -78,7 +78,7 @@ failure message, and one line in CLAUDE.md pointing at it.
 A standard-library Python script that reads `~/.claude/projects` and prints counts and percentages: tokens by day and
 week, the mix, heavy calls, cache rebuilds, the costliest sessions and how long they lived, starting context by day,
 polls and images. It's read-only, makes no network calls, and never prints message text, project names or prices.
-Run it directly:
+Run it directly from a clone of this repo:
 
 ```bash
 python3 skills/audit-your-spend/scripts/audit.py --since 2026-11-01 --until 2026-11-07
@@ -87,7 +87,7 @@ python3 skills/audit-your-spend/scripts/audit.py --since 2026-11-01 --until 2026
 ## How the skills were tested
 
 Each behaviour skill has a scenario in `tests/scenarios/`: a fresh agent answers it once without the skill and once
-with it (`zsh tests/run-scenarios.sh <out-dir> [skills]`). Without the skills, a fresh agent views all 12 screenshots
+with it (`zsh tests/run-scenarios.sh <out-dir> [skills-root]`). Without the skills, a fresh agent views all 12 screenshots
 at full size, keeps working at 300k context ("300k of 1M is not a problem"), and runs CI five times on a stack it
 could check once. With them, it doesn't. The audit script and the repo have unit tests
 (`python3 -m unittest discover -s tests`), and on my own logs the audit reproduces my October total to the token.

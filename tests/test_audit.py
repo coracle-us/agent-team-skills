@@ -178,6 +178,31 @@ class AuditTest(unittest.TestCase):
             self.assertNotIn('SECRET-TEXT', out)
             self.assertNotIn('someone-private', out)
 
+    def test_counts_truncated_and_bad_usage_lines(self):
+        bad = call(2, 1, read=100)
+        bad['message']['usage'] = 'oops'
+        self.logs.session('s1', [call(1, 0, read=100), bad], raw_lines=['{"type": "assistant", "message": {"id": "m'])
+        _, stats = audit.load_calls(self.logs.root, *WINDOW)
+        self.assertEqual(stats.lines_skipped, 2)
+
+    def test_unreadable_file_is_skipped_without_showing_its_path(self):
+        self.logs.session('s1', [call(1, 0, read=100)])
+        os.makedirs(os.path.join(self.logs.root, '-Users-x-secretproj', 'foo.jsonl'))
+        calls, stats = audit.load_calls(self.logs.root, *WINDOW)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(stats.files_unreadable, 1)
+        self.assertNotIn('secretproj', audit.render(audit.build_report(calls, stats)))
+
+    def test_reports_logs_found_outside_the_window(self):
+        self.logs.session('s1', [call(1, 0, read=100)])
+        text = audit.render(self.logs.report(date(2026, 11, 1), date(2026, 11, 7)))
+        self.assertIn('no usage in this window', text)
+        self.assertIn('2026-10-21', text)
+
+    def test_sleep_polls_marked_approximate(self):
+        self.logs.session('s1', [call(1, 0, read=100)])
+        self.assertIn('Sleep-and-check polls (approximate', audit.render(self.logs.report()))
+
     def test_reports_dates_found(self):
         self.logs.session('s1', [call(1, 0, read=100), call(2, 60 * 30, read=100)])
         text = audit.render(self.logs.report())
