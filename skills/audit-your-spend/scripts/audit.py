@@ -8,7 +8,8 @@ Standard library only, no network. Usage:
     python3 audit.py --since 2026-10-01 --until 2026-10-31 [--json] [--root PATH]
 
 Fields it reads (Claude Code session logs, late 2026):
-- assistant entries: message.id + requestId (one response can be logged several times; counted once),
+- assistant entries: message.id + requestId (a streamed response is logged several times, and early copies carry
+  only part of its output_tokens: each response is counted once, with the largest value of each field),
   message.usage {input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens,
   cache_creation {ephemeral_5m_input_tokens, ephemeral_1h_input_tokens}}, message.content tool_use blocks.
 - user entries: image blocks in message.content and inside tool_result content.
@@ -33,6 +34,7 @@ HEAVY = 400_000            # a call carrying more context than this is "heavy"
 REBUILD_GAP = 300          # seconds idle after which the prompt cache has (at least) the 5-minute lifetime expired
 REBUILD_MIN_CONTEXT = 20_000
 REBUILD_SHARE = 0.5        # a rebuild writes at least half its context to the cache again
+TOKEN_FIELDS = ('input', 'output', 'cache_read', 'cache_write_5m', 'cache_write_1h')
 SLEEP = re.compile(r'\bsleep\s+\d')
 UUID = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-')
 
@@ -97,7 +99,7 @@ def _count_images(content):
 
 def load_calls(root, since, until):
     """Every API call between since and until (UTC days, inclusive), each counted once."""
-    calls, stats, seen, tool_ids = [], Stats(), set(), set()
+    calls, stats, seen, tool_ids = [], Stats(), {}, set()
     for path in glob.glob(os.path.join(root, '**', '*.jsonl'), recursive=True):
         stats.files_scanned += 1
         stem = os.path.splitext(os.path.basename(path))[0]
@@ -153,17 +155,21 @@ def _read_file(path, session, in_agent_folder, since, until, calls, stats, seen,
             if not isinstance(u, dict):
                 continue
             key = (m.get('id'), o.get('requestId'))
-            if key in seen:
-                continue
-            seen.add(key)
             cc = u.get('cache_creation') if isinstance(u.get('cache_creation'), dict) else None
             w1 = int(cc.get('ephemeral_1h_input_tokens') or 0) if cc else 0
             w5 = int(cc.get('ephemeral_5m_input_tokens') or 0) if cc else int(u.get('cache_creation_input_tokens') or 0)
-            calls.append(Call(session=session, agent=in_agent_folder or bool(o.get('isSidechain')), ts=t,
-                              model=m.get('model') or 'unknown', input=int(u.get('input_tokens') or 0),
-                              output=int(u.get('output_tokens') or 0),
-                              cache_read=int(u.get('cache_read_input_tokens') or 0),
-                              cache_write_5m=w5, cache_write_1h=w1))
+            c = Call(session=session, agent=in_agent_folder or bool(o.get('isSidechain')), ts=t,
+                     model=m.get('model') or 'unknown', input=int(u.get('input_tokens') or 0),
+                     output=int(u.get('output_tokens') or 0),
+                     cache_read=int(u.get('cache_read_input_tokens') or 0),
+                     cache_write_5m=w5, cache_write_1h=w1)
+            if key in seen:  # a later copy of a streamed response: keep the largest count of each kind
+                prev = seen[key]
+                for f in TOKEN_FIELDS:
+                    setattr(prev, f, max(getattr(prev, f), getattr(c, f)))
+                continue
+            seen[key] = c
+            calls.append(c)
             stats.earliest = t if stats.earliest is None or t < stats.earliest else stats.earliest
             stats.latest = t if stats.latest is None or t > stats.latest else stats.latest
 

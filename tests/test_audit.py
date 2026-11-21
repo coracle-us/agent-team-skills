@@ -67,6 +67,14 @@ class AuditTest(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertEqual(self.logs.report()['totals']['tokens'], 1010)
 
+    def test_streamed_copies_keep_the_final_usage(self):
+        early, final = call(1, 0, read=1000, out=10), call(1, 0, read=1000, out=50)
+        self.logs.session('s1', [early, final])
+        calls, _ = audit.load_calls(self.logs.root, *WINDOW)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0].output, 50)
+        self.assertEqual(self.logs.report()['totals']['tokens'], 1050)
+
     def test_skips_bad_lines(self):
         self.logs.session('s1', [call(1, 0, read=100), {'type': 'summary', 'usage': 'none', 'timestamp': ts(1)}],
                           raw_lines=['{"usage": not json'])

@@ -8,7 +8,7 @@ description: Use when a session's context is past about 200k tokens, a session h
 **You pay for the window you carry, not the window you have.** Every call re-reads the whole context. A 1M window
 doesn't make 300k cheap: it makes it possible, so nothing forces a restart.
 
-Why: in a 12-day agent-team build, calls carrying over 400k tokens of context were 44% of calls and 71% of all cost.
+Why: in a 12-day agent-team build, calls carrying over 400k tokens of context were 46% of calls and 70% of all cost.
 
 ## Restart at about 250k
 

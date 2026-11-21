@@ -21,7 +21,7 @@ names, no prices. Agent names are shown as short hashes.
 
 ## Read it back
 
-Lead with the one number that surprises: the output share ("only 0.1% of tokens were the model writing anything").
+Lead with the one number that surprises: the output share ("only 0.2% of tokens were the model writing anything").
 Then name each leak the report shows, biggest first, with the skill that fixes it:
 
 | Report line | What it means | Fix |

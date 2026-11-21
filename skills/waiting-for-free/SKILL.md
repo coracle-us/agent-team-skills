@@ -9,8 +9,8 @@ description: Use when a build, CI run, deploy, test suite or long script will ta
 turn. And a big context left idle past the prompt-cache lifetime (5 minutes by default) is written to the cache again,
 in full, on the next turn.
 
-Why: in a 12-day agent-team build, 3,019 sleep-and-check loops and 1,039 cache rebuilds after idle gaps; the rebuilds
-alone were roughly 30–40% of all cost.
+Why: in a 12-day agent-team build, over 2,000 sleep-and-check loops and 1,154 cache rebuilds after idle gaps; the
+rebuilds alone were about 35% of all cost.
 
 ## Pick the cheapest wait
 

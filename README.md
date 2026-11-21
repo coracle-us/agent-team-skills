@@ -3,8 +3,8 @@
 **In agentic coding you pay for agents to remember, not to work.**
 
 In October 2026 I used 25.5 billion tokens through Claude Code, most of it leading teams of agents that built a multiplayer
-browser game in 12 days. Only **0.10%** of those tokens were the model writing anything: code, prose, commands.
-**96.5%** was the model re-reading context it already had, from the cache, on every single call.
+browser game in 12 days. Only **0.24%** of those tokens were the model writing anything: code, prose, commands.
+**96.4%** was the model re-reading context it already had, from the cache, on every single call.
 
 So I audited every transcript to find where the re-reading went, and turned what I found into seven Claude Code
 skills. Each one fires at the moment the leak happens, for whoever is **leading a team of agents**.
@@ -28,15 +28,15 @@ Then check your own week: ask Claude "where did my tokens go this week?" and the
 
 ## What I found, and the skill for each
 
-From the 12-day build (Oct 18–30: 23.0B tokens, 292 agents plus 2 lead sessions). Cost shares are estimates from API
+From the 12-day build (Oct 18–30: 21.9B tokens, 292 agents plus 2 lead sessions), as `audit-your-spend` counts it. Cost shares are estimates from API
 list-price ratios.
 
 | Skill | Fires when | The leak it stops |
 |---|---|---|
-| `briefing-agents` | you're about to spawn an agent | Agents were **86%** of tokens. One agent kept alive for **117 hours** made 1,320 calls at ~500k context each: **15%** of all cost by itself. |
-| `waiting-for-free` | a build, CI run or deploy will take minutes | **3,019** sleep-and-check loops, and **1,039** cache rebuilds after idle gaps: roughly **30–40%** of all cost. |
-| `context-hygiene` | a session is getting heavy, or CLAUDE.md is growing | Calls carrying over 400k context were **44%** of calls and **71%** of cost. CLAUDE.md grew from 10 KB to 255 KB, and a new agent's starting context went from **32k to 113k** tokens. |
-| `looking-cheaply` | you're about to take screenshots | **6,574** screenshots, each re-read on every later turn. |
+| `briefing-agents` | you're about to spawn an agent | Agents were **86%** of tokens. One agent kept alive for **117 hours** made 1,320 calls at ~500k context each: **12%** of all cost by itself. |
+| `waiting-for-free` | a build, CI run or deploy will take minutes | over **2,000** sleep-and-check loops, and **1,154** cache rebuilds after idle gaps: about **35%** of all cost. |
+| `context-hygiene` | a session is getting heavy, or CLAUDE.md is growing | Calls carrying over 400k context were **46%** of calls and **70%** of cost. CLAUDE.md grew from 10 KB to 255 KB, and a new agent's starting context went from **32k to 113k** tokens. |
+| `looking-cheaply` | you're about to take screenshots | More than **6,500** screenshots, each re-read on every later turn. |
 | `merging-in-batches` | you're merging a stack of PRs, or a test is flaky | One CI run for a resolved stack, not one per PR; a flaky test gets one logged retry, not a restart. |
 | `rulings-become-tests` | the lead makes a call that must keep holding | Fresh agents don't know yesterday's decisions. A test does. |
 | `audit-your-spend` | you ask where the tokens went | Runs locally on your own logs and shows all of the above for your week. |

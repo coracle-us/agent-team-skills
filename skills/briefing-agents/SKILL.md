@@ -10,7 +10,7 @@ never in a long-running context. Every turn an agent takes re-reads its whole co
 jobs pays again and again for history it no longer needs.
 
 Why: in a 12-day build with 292 agents, agents were 86% of all tokens. One agent kept alive for 117 hours to run a
-merge queue made 1,320 calls at about 500k tokens of context each: 15% of all cost, by itself.
+merge queue made 1,320 calls at about 500k tokens of context each: 12% of all cost, by itself.
 
 ## The brief
 
