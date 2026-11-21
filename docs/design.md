@@ -46,7 +46,9 @@ for a solo developer with one session; they don't hit these leaks.
 
 October 2026, all of Jon's Claude Code use (from session logs, each API response counted once by message id +
 request id):
-- 25.5B tokens (25,461,485,789). Output was 0.10%. Cache reads 96.5%, cache writes 3.4%.
+- 25.5B tokens (25,496,757,163). Output was 0.24% (61.4M). Cache reads 96.4%, cache writes 3.4%.
+  (Corrected Nov 20: a streamed response is logged several times and early copies carry only part of its output;
+  counting the first copy had given 25,461,485,789 tokens and 0.10% output.)
 - Busiest week: 15.5B tokens (Oct 19–25).
 
 The 12-day audit of the game build (Oct 18–30, 23.0B tokens, 292 agents plus 2 lead sessions):

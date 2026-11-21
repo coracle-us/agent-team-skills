@@ -3,8 +3,8 @@
 **In agentic coding you pay for agents to remember, not to work.**
 
 In October 2026 I used 25.5 billion tokens through Claude Code, most of it leading teams of agents that built a multiplayer
-browser game in 12 days. Only **0.10%** of those tokens were the model writing anything: code, prose, commands.
-**96.5%** was the model re-reading context it already had, from the cache, on every single call.
+browser game in 12 days. Only **0.24%** of those tokens were the model writing anything: code, prose, commands.
+**96.4%** was the model re-reading context it already had, from the cache, on every single call.
 
 So I audited every transcript to find where the re-reading went, and turned what I found into seven Claude Code
 skills. Each one fires at the moment the leak happens, for whoever is **leading a team of agents**.
