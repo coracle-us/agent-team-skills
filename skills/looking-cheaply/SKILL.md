@@ -8,7 +8,7 @@ description: Use when about to take screenshots, view rendered images, or visual
 **Every image you view stays in your context and is re-read on every later turn.** Twelve full-size screenshots per
 check, three checks, is 36 images riding along for the rest of the session.
 
-Why: a 12-day agent-team build had 6,574 screenshots in context.
+Why: a 12-day agent-team build had more than 6,500 screenshots in context.
 
 ## The recipe
 

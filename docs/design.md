@@ -51,7 +51,11 @@ request id):
   counting the first copy had given 25,461,485,789 tokens and 0.10% output.)
 - Busiest week: 15.5B tokens (Oct 19–25).
 
-The 12-day audit of the game build (Oct 18–30, 23.0B tokens, 292 agents plus 2 lead sessions):
+The 12-day build (Oct 18–30, 292 agents plus 2 lead sessions). Recounted Nov 20 with `audit-your-spend`, which is
+what readers can reproduce: 21.9B tokens; output 0.23%; agents 86% of tokens, 91% of cost; calls over 400k context
+46% of calls, 70% of cost; 1,154 cache rebuilds, about 35% of cost; the 117-hour agent 12% of cost; over 2,000
+sleep polls (approximate); more than 6,500 images. Public text uses the recount. The original audit (Oct 30), kept
+below for the record, counted 23.0B:
 - Agents were 86% of tokens and 93% of cost.
 - Output (everything Claude actually wrote) was 0.2% of tokens.
 - Cache rebuilds after idle gaps: 1,039 of them, 583M tokens, roughly 30–40% of cost. An agent waits 5–60 min
