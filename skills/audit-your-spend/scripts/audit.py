@@ -18,6 +18,7 @@ Fields it reads (Claude Code session logs, late 2026):
 import argparse
 import collections
 import glob
+import hashlib
 import json
 import os
 import re
@@ -33,6 +34,7 @@ REBUILD_GAP = 300          # seconds idle after which the prompt cache has (at l
 REBUILD_MIN_CONTEXT = 20_000
 REBUILD_SHARE = 0.5        # a rebuild writes at least half its context to the cache again
 SLEEP = re.compile(r'\bsleep\s+\d')
+UUID = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-')
 
 
 @dataclass
@@ -150,6 +152,12 @@ def load_calls(root, since, until):
     return calls, stats
 
 
+def _short_id(session):
+    """A random session UUID keeps its first 8 characters; any other name (agents are often named after the work)
+    becomes a short hash, so a shared report never shows it."""
+    return session[:8] if UUID.match(session) else hashlib.sha1(session.encode()).hexdigest()[:8]
+
+
 def _pct(part, whole):
     return 100.0 * part / whole if whole else 0.0
 
@@ -184,7 +192,7 @@ def build_report(calls, stats):
     for (_, agent), cs in sessions.items():
         starts[cs[0].ts.astimezone(timezone.utc).date().isoformat()]['agent' if agent else 'lead'].append(cs[0].context)
 
-    longest = sorted(sessions.items(), key=lambda kv: kv[1][-1].ts - kv[1][0].ts, reverse=True)[:5]
+    costliest = sorted(sessions.items(), key=lambda kv: sum(c.cost for c in kv[1]), reverse=True)[:5]
     agent_calls = [c for c in calls if c.agent]
     heavy = [c for c in calls if c.context > HEAVY]
     return {
@@ -202,9 +210,9 @@ def build_report(calls, stats):
                   'cost_share': _pct(sum(c.cost for c in heavy), cost)},
         'rebuilds': {'count': len(rebuilds), 'tokens': sum(c.cache_write_5m + c.cache_write_1h for c in rebuilds),
                      'cost_share': _pct(sum(c.cost for c in rebuilds), cost)},
-        'longest_sessions': [{'id': s[:8], 'agent': agent, 'hours': (cs[-1].ts - cs[0].ts).total_seconds() / 3600,
+        'costliest_sessions': [{'id': _short_id(s), 'agent': agent, 'hours': (cs[-1].ts - cs[0].ts).total_seconds() / 3600,
                               'calls': len(cs), 'cost_share': _pct(sum(c.cost for c in cs), cost)}
-                             for (s, agent), cs in longest],
+                             for (s, agent), cs in costliest],
         'starting_context': [{'day': d,
                               'lead_median': int(statistics.median(v['lead'])) if v['lead'] else None,
                               'agent_median': int(statistics.median(v['agent'])) if v['agent'] else None}
@@ -253,9 +261,9 @@ def render(r):
             f"  Cache rebuilds after idle gaps: {rb['count']:,} ({_n(rb['tokens'])} tokens), "
             f"{rb['cost_share']:.0f}% of estimated cost.",
             f"  Sleep-and-check polls: {r['sleep_polls']:,}.  Images in context: {r['images']:,}.",
-            '', 'Longest-lived sessions:']
+            '', 'Costliest sessions, and how long each lived:']
     out += [f"  {s['id']}  {'agent' if s['agent'] else 'lead '}  {s['hours']:6.1f} h  {s['calls']:>6,} calls  "
-            f"{s['cost_share']:4.1f}% of estimated cost" for s in r['longest_sessions']]
+            f"{s['cost_share']:4.1f}% of estimated cost" for s in r['costliest_sessions']]
     out += ['', "Median starting context of a new session (what it pays before doing anything):"]
     fmt = lambda v: _n(v) if v is not None else '-'
     out += [f"  {s['day']}  lead {fmt(s['lead_median']):>7}  agent {fmt(s['agent_median']):>7}"

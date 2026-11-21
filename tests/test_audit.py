@@ -148,13 +148,17 @@ class AuditTest(unittest.TestCase):
         ])
         self.assertEqual(self.logs.report()['images'], 2)
 
-    def test_longest_sessions(self):
-        self.logs.session('short-session-id', [call(1, 0, read=100), call(2, 60, read=100)])
-        self.logs.session('long-session-id', [call(3, 0, read=100), call(4, 600, read=100)])
-        top = self.logs.report()['longest_sessions']
-        self.assertEqual([s['id'] for s in top], ['long-ses', 'short-se'])
+    def test_costliest_sessions_ranked_by_cost_with_lifetime(self):
+        self.logs.session('e43340e8-cf64-48f3-8955-4a09b31c719c', [call(1, 0, read=100), call(2, 60 * 200, read=100)])
+        self.logs.session('agent-busyagent', [call(3, 0, read=300), call(4, 600, read=500)], project='-p/l/subagents')
+        top = self.logs.report()['costliest_sessions']
+        self.assertEqual(top[1]['id'], 'e43340e8')
+        self.assertTrue(top[0]['agent'])
+        self.assertEqual(len(top[0]['id']), 8)
+        self.assertNotIn('busy', top[0]['id'])
+        self.assertAlmostEqual(top[1]['hours'], 200.0)
         self.assertAlmostEqual(top[0]['hours'], 10.0)
-        self.assertAlmostEqual(top[0]['cost_share'], 50.0)
+        self.assertAlmostEqual(top[0]['cost_share'], 80.0)
 
     def test_window_filters_by_utc_day(self):
         self.logs.session('s1', [call(1, 0, read=100)])
