@@ -1,0 +1,17 @@
+{
+  "name": "agent-team-skills",
+  "description": "Skills for leading a team of Claude Code agents without paying for them to remember.",
+  "owner": {
+    "name": "Jon McBee (Coracle)",
+    "email": "jon@coracle.us"
+  },
+  "plugins": [
+    {
+      "name": "agent-team-skills",
+      "description": "Skills for leading a team of Claude Code agents without paying for them to remember.",
+      "version": "0.1.0",
+      "source": "./",
+      "author": { "name": "Jon McBee", "email": "jon@coracle.us" }
+    }
+  ]
+}

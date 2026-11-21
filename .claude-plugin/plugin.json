@@ -1,0 +1,13 @@
+{
+  "name": "agent-team-skills",
+  "description": "Skills for leading a team of Claude Code agents without paying for them to remember.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Jon McBee",
+    "email": "jon@coracle.us"
+  },
+  "homepage": "https://github.com/coracle-us/agent-team-skills",
+  "repository": "https://github.com/coracle-us/agent-team-skills",
+  "license": "MIT",
+  "keywords": ["agents", "subagents", "agent-teams", "tokens", "context", "cost"]
+}
